@@ -105,3 +105,74 @@ void State4::onOpenPar(Parser &parser){
 void State4::onExpr(Parser &parser){
     parser.shift(&S7);
 }
+
+void State5::onVal(Parser &parser) {
+    parser.shift(&S3);
+}
+void State5::onOpenPar(Parser &parser) {
+    parser.shift(&S2);
+}
+void State5::onExpr(Parser &parser) {
+    parser.shift(&S7);
+}
+
+void State6::onAdd(Parser &parser) {
+    parser.shift(&S4);
+}
+
+void State6::onMul(Parser &parser) {
+    parser.shift(&S5);
+}
+
+void State6::onClosePar(Parser &parser) {
+    parser.shift(&S9);
+}
+
+void State7::onAdd(Parser &parser) {
+    parser.reduce(3);
+}
+
+void State7::onMul(Parser &parser) {
+    parser.shift(&S5);
+}
+
+void State7::onEOF(Parser &parser) {
+    parser.reduce(3);
+}
+
+void State7::onClosePar(Parser &parser) {
+    parser.reduce(3);
+}
+
+void State8::onAdd(Parser &parser) {
+    parser.reduce(3);
+}
+
+void State8::onMul(Parser &parser) {
+    parser.reduce(3);
+}
+
+void State8::onEOF(Parser &parser) {
+    parser.reduce(3);
+}
+
+void State8::onClosePar(Parser &parser) {
+    parser.reduce(3);
+}
+
+void State9::onAdd(Parser &parser) {
+    parser.reduce(3);
+}
+
+void State9::onMul(Parser &parser) {
+    parser.reduce(3);
+}
+
+void State9::onEOF(Parser &parser) {
+    parser.reduce(3);
+}
+
+void State9::onClosePar(Parser &parser) {
+    parser.reduce(3);
+}
+

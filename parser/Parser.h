@@ -17,7 +17,6 @@ class Parser {
     void reduce(size_t stateCount);
 
   private:
-    void transition();
     Lexer *lex;
     std::vector<State *> stack;
 };

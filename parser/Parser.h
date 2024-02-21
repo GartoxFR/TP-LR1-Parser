@@ -44,10 +44,10 @@ class Parser {
 
   private:
     void execute();
+
     Lexer *lex;
     std::vector<State *> stack;
     std::vector<std::unique_ptr<Symbole>> symbolStack;
-    std::unique_ptr<Symbole> nextSymbol;
     std::unique_ptr<Expr> finalExpr;
 };
 

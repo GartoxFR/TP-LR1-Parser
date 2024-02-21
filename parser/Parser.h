@@ -10,15 +10,45 @@ class State;
 
 class Parser {
   public:
+    Parser(Lexer *lexer);
     Lexer &lexer() { return *lex; }
 
-    void shift(State *nextState);
+    void shiftTerm(State *nextState);
+    void shiftNonTerm(State *nextState);
 
-    void reduce(size_t stateCount);
+    void transition();
+    void reduce(size_t stateCount, std::unique_ptr<Symbole> &&symbol);
+
+    std::unique_ptr<Symbole> popSymbol() {
+        auto symbol = std::move(symbolStack.back());
+
+        symbolStack.pop_back();
+
+        return symbol;
+    }
+
+    void setNextSymbol(std::unique_ptr<Symbole> &&sym) {
+        if (nextSymbol) {
+            symbolStack.push_back(std::move(nextSymbol));
+        }
+
+
+        nextSymbol = std::move(sym);
+    }
+
+    void accept() {
+        auto&& exprSym = popSymbol();
+        finalExpr = std::unique_ptr<Expr>(static_cast<Expr*>(exprSym.release()));
+    }
+
+    std::unique_ptr<Expr> &result() { return finalExpr; }
 
   private:
     Lexer *lex;
     std::vector<State *> stack;
+    std::vector<std::unique_ptr<Symbole>> symbolStack;
+    std::unique_ptr<Symbole> nextSymbol;
+    std::unique_ptr<Expr> finalExpr;
 };
 
 class State {

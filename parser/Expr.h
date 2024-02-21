@@ -1,11 +1,16 @@
 #pragma once
 
+#include "lexer/symbole.h"
 #include <cstdint>
+#include <iostream>
 #include <memory>
 #include <ostream>
 
-class Expr {
+class Expr : public Symbole {
   public:
+    Expr() : Symbole(EXPR) {}
+
+    void Affiche() override { print(std::cout); }
     virtual std::ostream &print(std::ostream &o) = 0;
     virtual int32_t eval() = 0;
 };

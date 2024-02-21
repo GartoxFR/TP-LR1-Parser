@@ -1,5 +1,6 @@
 #include "parser/Parser.h"
 #include "lexer/symbole.h"
+#include <iostream>
 
 static State0 S0;
 static State1 S1;
@@ -43,4 +44,64 @@ void Parser::reduce(size_t stateCount) {
 
 void State0::onVal(Parser &parser){
     parser.shift(&S3);
+}
+
+void State0::onOpenPar(Parser &parser){
+    parser.shift(&S2);
+}
+
+void State0::onExpr(Parser &parser){
+    parser.shift(&S1);
+}
+
+void State1::onAdd(Parser &parser){
+    parser.shift(&S4);
+}
+
+void State1::onMul(Parser &parser){
+    parser.shift(&S5);
+}
+
+void State1::onEOF(Parser &parser){
+    cout << "accepter";
+}
+
+void State2::onVal(Parser &parser){
+    parser.shift(&S3);
+}
+
+void State2::onOpenPar(Parser &parser){
+    parser.shift(&S2);
+}
+
+void State2::onExpr(Parser &parser){
+    parser.shift(&S6);
+}
+
+void State3::onAdd(Parser &parser){
+    parser.reduce(1);
+}
+
+void State3::onMul(Parser &parser){
+    parser.reduce(1);
+}
+
+void State3::onClosePar(Parser &parser){
+    parser.reduce(1);
+}
+
+void State3::onEOF(Parser &parser){
+    parser.reduce(1);
+}
+
+void State4::onVal(Parser &parser){
+    parser.shift(&S3);
+}
+
+void State4::onOpenPar(Parser &parser){
+    parser.shift(&S2);
+}
+
+void State4::onExpr(Parser &parser){
+    parser.shift(&S7);
 }

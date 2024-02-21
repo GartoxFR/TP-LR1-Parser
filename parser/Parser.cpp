@@ -1,16 +1,16 @@
 #include "parser/Parser.h"
 #include "lexer/symbole.h"
 
-const State0 S0;
-const State1 S1;
-const State2 S2;
-const State3 S3;
-const State4 S4;
-const State5 S5;
-const State6 S6;
-const State7 S7;
-const State8 S8;
-const State9 S9;
+static State0 S0;
+static State1 S1;
+static State2 S2;
+static State3 S3;
+static State4 S4;
+static State5 S5;
+static State6 S6;
+static State7 S7;
+static State8 S8;
+static State9 S9;
 
 void Parser::shift(State* nextState) {
     stack.push_back(nextState);
@@ -39,4 +39,8 @@ void Parser::shift(State* nextState) {
 void Parser::reduce(size_t stateCount) {
     stack.resize(stack.size() - stateCount);
     stack.back()->onExpr(*this);
+}
+
+void State0::onVal(Parser &parser){
+    parser.shift(&S3);
 }

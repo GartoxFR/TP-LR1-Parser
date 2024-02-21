@@ -79,6 +79,10 @@ void Parser::execute() {
     }
 }
 
+// Avec un peu de refactoring, j'avoue qu'on peut remplacer ces State par un grand tableau
+// puisque qu'ils retournent tous des constants.
+// Mais bon, je suis gentiment les consignes ;)
+
 TransitionResult State0::onVal() { return Shift(&S3); }
 
 TransitionResult State0::onOpenPar() { return Shift(&S2); }
@@ -133,11 +137,11 @@ TransitionResult State7::onClosePar() { return Reduce(&R2); }
 
 TransitionResult State8::onAdd() { return Reduce(&R3); }
 
-TransitionResult State8::onMul() { return Reduce(&R2); }
+TransitionResult State8::onMul() { return Reduce(&R3); }
 
-TransitionResult State8::onEOF() { return Reduce(&R2); }
+TransitionResult State8::onEOF() { return Reduce(&R3); }
 
-TransitionResult State8::onClosePar() { return Reduce(&R2); }
+TransitionResult State8::onClosePar() { return Reduce(&R3); }
 
 TransitionResult State9::onAdd() { return Reduce(&R4); }
 

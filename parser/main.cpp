@@ -5,15 +5,21 @@
 #include <memory>
 
 int main(void) {
-    string chaine("(1+34)*123");
+    string line;
 
-    Lexer l(chaine);
-    Parser p(&l);
+    std::cout << ">> " << std::flush;
+    while (getline(std::cin, line)) {
 
-    auto& expr = p.result();
-    if (expr) {
-        expr->print(std::cout);
-        std::cout << " = " << expr->eval() << std::endl;
+        Lexer l(line);
+        Parser p(&l);
+
+        auto& expr = p.result();
+        if (expr) {
+            expr->print(std::cout);
+            std::cout << " = " << expr->eval() << std::endl;
+        }
+
+        std::cout << ">> " << std::flush;
     }
 
     return 0;

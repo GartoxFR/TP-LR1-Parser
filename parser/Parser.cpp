@@ -1,6 +1,17 @@
 #include "parser/Parser.h"
 #include "lexer/symbole.h"
 
+const State0 S0;
+const State1 S1;
+const State2 S2;
+const State3 S3;
+const State4 S4;
+const State5 S5;
+const State6 S6;
+const State7 S7;
+const State8 S8;
+const State9 S9;
+
 void Parser::shift(State* nextState) {
     stack.push_back(nextState);
     lexer().Avancer();

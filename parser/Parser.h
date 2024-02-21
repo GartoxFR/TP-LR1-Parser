@@ -2,22 +2,35 @@
 
 #include "lexer/lexer.h"
 #include "parser/Expr.h"
+#include "parser/Rules.h"
 #include <cstdint>
 #include <memory>
+#include <variant>
 #include <vector>
 
 class State;
+class Parser;
+
+struct Accept {};
+
+struct Shift {
+    explicit Shift(State *nextState) : nextState(nextState) {}
+    State *nextState;
+};
+
+struct Reduce {
+    explicit Reduce(Rule *rule) : rule(rule) {}
+    Rule *rule;
+};
+
+using TransitionResult = std::variant<Shift, Reduce, Accept>;
 
 class Parser {
   public:
     Parser(Lexer *lexer);
     Lexer &lexer() { return *lex; }
 
-    void shiftTerm(State *nextState);
-    void shiftNonTerm(State *nextState);
-
-    void transition();
-    void reduce(size_t stateCount, std::unique_ptr<Symbole> &&symbol);
+    void popStates(size_t count) { stack.resize(stack.size() - count); }
 
     std::unique_ptr<Symbole> popSymbol() {
         auto symbol = std::move(symbolStack.back());
@@ -27,23 +40,10 @@ class Parser {
         return symbol;
     }
 
-    void setNextSymbol(std::unique_ptr<Symbole> &&sym) {
-        if (nextSymbol) {
-            symbolStack.push_back(std::move(nextSymbol));
-        }
-
-
-        nextSymbol = std::move(sym);
-    }
-
-    void accept() {
-        auto&& exprSym = popSymbol();
-        finalExpr = std::unique_ptr<Expr>(static_cast<Expr*>(exprSym.release()));
-    }
-
     std::unique_ptr<Expr> &result() { return finalExpr; }
 
   private:
+    void execute();
     Lexer *lex;
     std::vector<State *> stack;
     std::vector<std::unique_ptr<Symbole>> symbolStack;
@@ -53,91 +53,120 @@ class Parser {
 
 class State {
   public:
-    virtual void onVal(Parser &parser) { throw exception(); }
+    TransitionResult onSymbol(const Symbole &symbole) {
 
-    virtual void onOpenPar(Parser &parser) { throw exception(); }
+        switch (symbole) {
+        case OPENPAR:
+            return onOpenPar();
+            break;
+        case CLOSEPAR:
+            return onClosePar();
+            break;
+        case PLUS:
+            return onAdd();
+            break;
+        case MULT:
+            return onMul();
+            break;
+        case INT:
+            return onVal();
+            break;
+        case EXPR:
+            return onExpr();
+            break;
+        case FIN:
+            return onEOF();
+            break;
+        }
 
-    virtual void onClosePar(Parser &parser) { throw exception(); }
+        throw exception();
+    }
 
-    virtual void onAdd(Parser &parser) { throw exception(); }
+    virtual TransitionResult onVal() { throw exception(); }
 
-    virtual void onMul(Parser &parser) { throw exception(); }
+    virtual TransitionResult onOpenPar() { throw exception(); }
 
-    virtual void onEOF(Parser &parser) { throw exception(); }
+    virtual TransitionResult onClosePar() { throw exception(); }
 
-    virtual void onExpr(Parser &parser) { throw exception(); }
+    virtual TransitionResult onAdd() { throw exception(); }
+
+    virtual TransitionResult onMul() { throw exception(); }
+
+    virtual TransitionResult onEOF() { throw exception(); }
+
+    virtual TransitionResult onExpr() { throw exception(); }
 };
 
 class State0 : public State {
   public:
-    void onVal(Parser &parser) override;
-    void onOpenPar(Parser &parser) override;
-    void onExpr(Parser &parser) override;
+    TransitionResult onVal() override;
+    TransitionResult onOpenPar() override;
+    TransitionResult onExpr() override;
 };
 
 class State1 : public State {
   public:
-    void onAdd(Parser &parser) override;
-    void onMul(Parser &parser) override;
-    void onEOF(Parser &parser) override;
+    TransitionResult onAdd() override;
+    TransitionResult onMul() override;
+    TransitionResult onEOF() override;
 };
 
 class State2 : public State {
   public:
-    void onVal(Parser &parser) override;
-    void onOpenPar(Parser &parser) override;
-    void onExpr(Parser &parser) override;
+    TransitionResult onVal() override;
+    TransitionResult onOpenPar() override;
+    TransitionResult onExpr() override;
 };
 
 class State3 : public State {
   public:
-    void onAdd(Parser &parser) override;
-    void onMul(Parser &parser) override;
-    void onClosePar(Parser &parser) override;
-    void onEOF(Parser &parser) override;
+    TransitionResult onAdd() override;
+    TransitionResult onMul() override;
+    TransitionResult onClosePar() override;
+    TransitionResult onEOF() override;
 };
 
 class State4 : public State {
   public:
-    void onVal(Parser &parser) override;
-    void onOpenPar(Parser &parser) override;
-    void onExpr(Parser &parser) override;
+    TransitionResult onVal() override;
+    TransitionResult onOpenPar() override;
+    TransitionResult onExpr() override;
 };
 
 class State5 : public State {
   public:
-    void onVal(Parser &parser) override;
-    void onOpenPar(Parser &parser) override;
-    void onExpr(Parser &parser) override;
+    TransitionResult onVal() override;
+    TransitionResult onOpenPar() override;
+    TransitionResult onExpr() override;
 };
 
 class State6 : public State {
   public:
-    void onAdd(Parser &parser) override;
-    void onMul(Parser &parser) override;
-    void onClosePar(Parser &parser) override;
+    TransitionResult onAdd() override;
+    TransitionResult onMul() override;
+    TransitionResult onClosePar() override;
 };
 
 class State7 : public State {
   public:
-    void onAdd(Parser &parser) override;
-    void onMul(Parser &parser) override;
-    void onClosePar(Parser &parser) override;
-    void onEOF(Parser &parser) override;
+    TransitionResult onAdd() override;
+    TransitionResult onMul() override;
+    TransitionResult onClosePar() override;
+    TransitionResult onEOF() override;
 };
 
 class State8 : public State {
   public:
-    void onAdd(Parser &parser) override;
-    void onMul(Parser &parser) override;
-    void onClosePar(Parser &parser) override;
-    void onEOF(Parser &parser) override;
+    TransitionResult onAdd() override;
+    TransitionResult onMul() override;
+    TransitionResult onClosePar() override;
+    TransitionResult onEOF() override;
 };
 
 class State9 : public State {
   public:
-    void onAdd(Parser &parser) override;
-    void onMul(Parser &parser) override;
-    void onClosePar(Parser &parser) override;
-    void onEOF(Parser &parser) override;
+    TransitionResult onAdd() override;
+    TransitionResult onMul() override;
+    TransitionResult onClosePar() override;
+    TransitionResult onEOF() override;
 };

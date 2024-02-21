@@ -14,279 +14,135 @@ static State7 S7;
 static State8 S8;
 static State9 S9;
 
-Parser::Parser(Lexer *lexer) : lex(lexer) {
-    shiftTerm(&S0);
-}
+static Rule2 R2;
+static Rule3 R3;
+static Rule4 R4;
+static Rule5 R5;
 
-void Parser::transition() {
+Parser::Parser(Lexer *lexer) : lex(lexer) { execute(); }
 
-    switch (*nextSymbol) {
-        case OPENPAR:
-            stack.back()->onOpenPar(*this);
-            break;
-        case CLOSEPAR:
-            stack.back()->onClosePar(*this);
-            break;
-        case PLUS:
-            stack.back()->onAdd(*this);
-            break;
-        case MULT:
-            stack.back()->onMul(*this);
-            break;
-        case INT:
-            stack.back()->onVal(*this);
-            break;
-        case EXPR:
-            stack.back()->onExpr(*this);
-            break;
-        case FIN:
-            stack.back()->onEOF(*this);
-            break;
+template <typename... Ts> struct overload : Ts... {
+    using Ts::operator()...;
+};
+
+template <typename... Ts> overload(Ts...) -> overload<Ts...>;
+
+void Parser::execute() {
+    bool finished = false;
+
+    stack.push_back(&S0);
+
+    std::unique_ptr<Symbole> nextNonTerm;
+    std::unique_ptr<Symbole> savedTerm;
+    std::unique_ptr<Symbole> current;
+
+    while (!finished) {
+        if (nextNonTerm) {
+            // Si un non terminal a été émis, on l'utilise
+            current = std::move(nextNonTerm);
+            nextNonTerm = nullptr;
+        } else if (savedTerm) {
+            current = std::move(savedTerm);
+            savedTerm = nullptr;
+            // On avait sauvé un terminal pour émettre un non terminal
+        } else {
+            // Sinon on consulte le lexer et on avance
+            current = std::unique_ptr<Symbole>(lexer().Consulter());
+            lexer().Avancer();
+        }
+
+        // On regarde la transition
+        TransitionResult result = stack.back()->onSymbol(*current);
+
+        std::visit(overload{
+                       [&](Shift &shift) {
+                           // La transition est un shift -> on push le symbol lu
+                           // et le prochain état
+                           symbolStack.push_back(std::move(current));
+                           stack.push_back(shift.nextState);
+                       },
+                       [&](Reduce &reduce) {
+                           // La transition est un reduce -> on émmet un nouveau
+                           // symbole non terminal en appliquant la règle
+                           nextNonTerm = reduce.rule->reduce(*this);
+                           savedTerm = std::move(current);
+                       },
+                       [&](Accept &accept) {
+                           // On a reconnu l'expression, on termine notre boucle
+                           finished = true;
+                           auto &&exprSym = popSymbol();
+                           finalExpr = std::unique_ptr<Expr>(
+                               static_cast<Expr *>(exprSym.release()));
+                       },
+                   },
+                   result);
     }
 }
 
-void Parser::shiftTerm(State* nextState) {
-    stack.push_back(nextState);
+TransitionResult State0::onVal() { return Shift(&S3); }
 
-    lexer().Avancer();
+TransitionResult State0::onOpenPar() { return Shift(&S2); }
 
-    Symbole *sym = lexer().Consulter();
-    setNextSymbol(std::unique_ptr<Symbole>(sym));
-    transition();
-}
+TransitionResult State0::onExpr() { return Shift(&S1); }
 
-void Parser::shiftNonTerm(State* nextState) {
-    stack.push_back(nextState);
-    Symbole *sym = lexer().Consulter();
-    setNextSymbol(std::unique_ptr<Symbole>(sym));
-    transition();
-}
+TransitionResult State1::onAdd() { return Shift(&S4); }
 
-void Parser::reduce(size_t stateCount, std::unique_ptr<Symbole> &&symbol) {
-    stack.resize(stack.size() - stateCount);
+TransitionResult State1::onMul() { return Shift(&S5); }
 
-    // On oublie le symbole sur la tête de lecture, on le relira plus tard avec le lexer
-    // On sait que c'est forcément un symbol terminal car il n'y a jamais de reduce sur un non terminal
+TransitionResult State1::onEOF() { return Accept(); }
 
-    (void) nextSymbol.release();
-    nextSymbol = nullptr;
+TransitionResult State2::onVal() { return Shift(&S3); }
 
-    setNextSymbol(std::move(symbol));
-    transition();
-}
+TransitionResult State2::onOpenPar() { return Shift(&S2); }
 
-void State0::onVal(Parser &parser){
-    parser.shiftTerm(&S3);
-}
+TransitionResult State2::onExpr() { return Shift(&S6); }
 
-void State0::onOpenPar(Parser &parser){
-    parser.shiftTerm(&S2);
-}
+TransitionResult State3::onAdd() { return Reduce(&R5); }
 
-void State0::onExpr(Parser &parser){
-    parser.shiftNonTerm(&S1);
-}
+TransitionResult State3::onMul() { return Reduce(&R5); }
 
-void State1::onAdd(Parser &parser){
-    parser.shiftTerm(&S4);
-}
+TransitionResult State3::onClosePar() { return Reduce(&R5); }
 
-void State1::onMul(Parser &parser){
-    parser.shiftTerm(&S5);
-}
+TransitionResult State3::onEOF() { return Reduce(&R5); }
 
-void State1::onEOF(Parser &parser){
-    parser.accept();
-}
+TransitionResult State4::onVal() { return Shift(&S3); }
 
-void State2::onVal(Parser &parser){
-    parser.shiftTerm(&S3);
-}
+TransitionResult State4::onOpenPar() { return Shift(&S2); }
 
-void State2::onOpenPar(Parser &parser){
-    parser.shiftTerm(&S2);
-}
+TransitionResult State4::onExpr() { return Shift(&S7); }
 
-void State2::onExpr(Parser &parser){
-    parser.shiftNonTerm(&S6);
-}
+TransitionResult State5::onVal() { return Shift(&S3); }
 
-void State3::onAdd(Parser &parser){
-    auto&& valSymbol = parser.popSymbol();
+TransitionResult State5::onOpenPar() { return Shift(&S2); }
 
-    int32_t value = static_cast<Entier*>(valSymbol.get())->value();
-    parser.reduce(1, std::make_unique<Val>(value));
-}
+TransitionResult State5::onExpr() { return Shift(&S8); }
 
-void State3::onMul(Parser &parser){
-    auto&& valSymbol = parser.popSymbol();
+TransitionResult State6::onAdd() { return Shift(&S4); }
 
-    int32_t value = static_cast<Entier*>(valSymbol.get())->value();
-    parser.reduce(1, std::make_unique<Val>(value));
-}
+TransitionResult State6::onMul() { return Shift(&S5); }
 
-void State3::onClosePar(Parser &parser){
-    auto&& valSymbol = parser.popSymbol();
+TransitionResult State6::onClosePar() { return Shift(&S9); }
 
-    int32_t value = static_cast<Entier*>(valSymbol.get())->value();
-    parser.reduce(1, std::make_unique<Val>(value));
-}
+TransitionResult State7::onAdd() { return Reduce(&R2); }
 
-void State3::onEOF(Parser &parser){
-    auto&& valSymbol = parser.popSymbol();
+TransitionResult State7::onMul() { return Shift(&S5); }
 
-    int32_t value = static_cast<Entier*>(valSymbol.get())->value();
-    parser.reduce(1, std::make_unique<Val>(value));
-}
+TransitionResult State7::onEOF() { return Reduce(&R2); }
 
-void State4::onVal(Parser &parser){
-    parser.shiftTerm(&S3);
-}
+TransitionResult State7::onClosePar() { return Reduce(&R2); }
 
-void State4::onOpenPar(Parser &parser){
-    parser.shiftTerm(&S2);
-}
+TransitionResult State8::onAdd() { return Reduce(&R3); }
 
-void State4::onExpr(Parser &parser){
-    parser.shiftNonTerm(&S7);
-}
+TransitionResult State8::onMul() { return Reduce(&R2); }
 
-void State5::onVal(Parser &parser) {
-    parser.shiftTerm(&S3);
-}
-void State5::onOpenPar(Parser &parser) {
-    parser.shiftTerm(&S2);
-}
-void State5::onExpr(Parser &parser) {
-    parser.shiftNonTerm(&S8);
-}
+TransitionResult State8::onEOF() { return Reduce(&R2); }
 
-void State6::onAdd(Parser &parser) {
-    parser.shiftTerm(&S4);
-}
+TransitionResult State8::onClosePar() { return Reduce(&R2); }
 
-void State6::onMul(Parser &parser) {
-    parser.shiftTerm(&S5);
-}
+TransitionResult State9::onAdd() { return Reduce(&R4); }
 
-void State6::onClosePar(Parser &parser) {
-    parser.shiftTerm(&S9);
-}
+TransitionResult State9::onMul() { return Reduce(&R4); }
 
-void State7::onAdd(Parser &parser) {
-    auto&& rightSym = parser.popSymbol();
-    parser.popSymbol();
-    auto&& leftSym = parser.popSymbol();
+TransitionResult State9::onEOF() { return Reduce(&R4); }
 
-    auto rightExpr = std::unique_ptr<Expr>(static_cast<Expr*>(rightSym.release()));
-    auto leftExpr = std::unique_ptr<Expr>(static_cast<Expr*>(leftSym.release()));
-
-    parser.reduce(3, std::make_unique<Add>(std::move(leftExpr), std::move(rightExpr)));
-}
-
-void State7::onMul(Parser &parser) {
-    parser.shiftTerm(&S5);
-}
-
-void State7::onEOF(Parser &parser) {
-    auto&& rightSym = parser.popSymbol();
-    parser.popSymbol();
-    auto&& leftSym = parser.popSymbol();
-
-    auto rightExpr = std::unique_ptr<Expr>(static_cast<Expr*>(rightSym.release()));
-    auto leftExpr = std::unique_ptr<Expr>(static_cast<Expr*>(leftSym.release()));
-
-    parser.reduce(3, std::make_unique<Add>(std::move(leftExpr), std::move(rightExpr)));
-}
-
-void State7::onClosePar(Parser &parser) {
-    auto&& rightSym = parser.popSymbol();
-    parser.popSymbol();
-    auto&& leftSym = parser.popSymbol();
-
-    auto rightExpr = std::unique_ptr<Expr>(static_cast<Expr*>(rightSym.release()));
-    auto leftExpr = std::unique_ptr<Expr>(static_cast<Expr*>(leftSym.release()));
-
-    parser.reduce(3, std::make_unique<Add>(std::move(leftExpr), std::move(rightExpr)));
-}
-
-void State8::onAdd(Parser &parser) {
-    auto&& rightSym = parser.popSymbol();
-    parser.popSymbol();
-    auto&& leftSym = parser.popSymbol();
-
-    auto rightExpr = std::unique_ptr<Expr>(static_cast<Expr*>(rightSym.release()));
-    auto leftExpr = std::unique_ptr<Expr>(static_cast<Expr*>(leftSym.release()));
-
-    parser.reduce(3, std::make_unique<Mul>(std::move(leftExpr), std::move(rightExpr)));
-}
-
-void State8::onMul(Parser &parser) {
-    auto&& rightSym = parser.popSymbol();
-    parser.popSymbol();
-    auto&& leftSym = parser.popSymbol();
-
-    auto rightExpr = std::unique_ptr<Expr>(static_cast<Expr*>(rightSym.release()));
-    auto leftExpr = std::unique_ptr<Expr>(static_cast<Expr*>(leftSym.release()));
-
-    parser.reduce(3, std::make_unique<Mul>(std::move(leftExpr), std::move(rightExpr)));
-}
-
-void State8::onEOF(Parser &parser) {
-    auto&& rightSym = parser.popSymbol();
-    parser.popSymbol();
-    auto&& leftSym = parser.popSymbol();
-
-    auto rightExpr = std::unique_ptr<Expr>(static_cast<Expr*>(rightSym.release()));
-    auto leftExpr = std::unique_ptr<Expr>(static_cast<Expr*>(leftSym.release()));
-
-    parser.reduce(3, std::make_unique<Mul>(std::move(leftExpr), std::move(rightExpr)));
-}
-
-void State8::onClosePar(Parser &parser) {
-    auto&& rightSym = parser.popSymbol();
-    parser.popSymbol();
-    auto&& leftSym = parser.popSymbol();
-
-    auto rightExpr = std::unique_ptr<Expr>(static_cast<Expr*>(rightSym.release()));
-    auto leftExpr = std::unique_ptr<Expr>(static_cast<Expr*>(leftSym.release()));
-
-    parser.reduce(3, std::make_unique<Mul>(std::move(leftExpr), std::move(rightExpr)));
-}
-
-void State9::onAdd(Parser &parser) {
-    parser.popSymbol();
-    auto&& exprSym = parser.popSymbol();
-    parser.popSymbol();
-
-    auto expr = std::unique_ptr<Expr>(static_cast<Expr*>(exprSym.release()));
-    parser.reduce(3, std::move(expr));
-}
-
-void State9::onMul(Parser &parser) {
-    parser.popSymbol();
-    auto&& exprSym = parser.popSymbol();
-    parser.popSymbol();
-
-    auto expr = std::unique_ptr<Expr>(static_cast<Expr*>(exprSym.release()));
-    parser.reduce(3, std::move(expr));
-}
-
-void State9::onEOF(Parser &parser) {
-    parser.popSymbol();
-    auto&& exprSym = parser.popSymbol();
-    parser.popSymbol();
-
-    auto expr = std::unique_ptr<Expr>(static_cast<Expr*>(exprSym.release()));
-    parser.reduce(3, std::move(expr));
-}
-
-void State9::onClosePar(Parser &parser) {
-    parser.popSymbol();
-    auto&& exprSym = parser.popSymbol();
-    parser.popSymbol();
-
-    auto expr = std::unique_ptr<Expr>(static_cast<Expr*>(exprSym.release()));
-    parser.reduce(3, std::move(expr));
-}
-
+TransitionResult State9::onClosePar() { return Reduce(&R4); }

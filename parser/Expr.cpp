@@ -5,7 +5,7 @@ std::ostream &Val::print(std::ostream &o){
     return o;
 }
 
-uint32_t Val::eval(){
+int32_t Val::eval(){
     return this->value;
 }
 
@@ -18,7 +18,7 @@ std::ostream &Add::print(std::ostream &o){
     return o;
 }
       
-uint32_t Add::eval(){
+int32_t Add::eval(){
     return (this->leftExpr->eval()+this->rightExpr->eval());
 }
 
@@ -31,6 +31,6 @@ std::ostream &Mul::print(std::ostream &o) {
     return o;
 }
 
-uint32_t Mul::eval() {
+int32_t Mul::eval() {
     return this->leftExpr->eval() * this->rightExpr->eval();
 } 

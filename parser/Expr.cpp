@@ -25,7 +25,7 @@ uint32_t Add::eval(){
 std::ostream &Mul::print(std::ostream &o) {
     o << "(";
     this->leftExpr->print(o);
-    o << " * ", this->rightExpr->print(o);
+    o << " * ";
     this->rightExpr->print(o);
     o << ")";
     return o;

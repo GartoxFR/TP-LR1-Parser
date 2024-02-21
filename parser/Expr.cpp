@@ -12,9 +12,7 @@ uint32_t Val::eval(){
 std::ostream &Add::print(std::ostream &o){
     o << "(";
     this->leftExpr->print(o);
-    o << ")";
     o << " + ";
-    o << "(";
     this->rightExpr->print(o);
     o << ")";
     return o;
